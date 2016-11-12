@@ -1,0 +1,33 @@
+<style>
+	canvas { border: 1px solid; }
+</style>
+<canvas id="main"></canvas>
+<script>
+	setTimeout(init);
+	var main, pen;
+	var circle = Math.PI * 2;
+
+	function init() {
+		main = document.getElementById('main');
+		pen = main.getContext('2d')
+		onresize = sizeCanvas;
+		sizeCanvas()
+	}
+
+	function sizeCanvas() {
+		main.width = innerWidth - 16;
+		main.height = innerHeight - 16;
+		redraw()
+	}
+
+	function redraw() {
+		// Find center coordinates
+		var x = main.width / 2, y = main.height / 2;
+
+		// Draw Pacman
+		pen.fillStyle = 'gold';
+		pen.moveTo(x, y);
+		pen.arc(x, y, 100, .5, circle - .5);
+		pen.fill();
+	}
+</script>
