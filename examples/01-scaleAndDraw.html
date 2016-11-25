@@ -1,0 +1,24 @@
+<img src="images/sprites.png" onload="init()">
+<canvas style="border: solid;"></canvas>
+<script>
+  /*
+   *  Draw an image onto a canvas at 4x its original size
+   */
+  function init() {
+    // Turn the page elements into Javascript objects
+    img = document.querySelector('img');
+    canvas = document.querySelector('canvas');
+    
+    // Set the canvas size to 4x the image size
+    canvas.width = img.width * 4;
+    canvas.height = img.height * 4;
+    
+    // Get the canvas's drawing context, scale it four-fold, and turn off anti-aliasing.
+    context = canvas.getContext('2d');
+    context.scale(4, 4);
+    context.imageSmoothingEnabled = false;
+    
+    // Draw the image onto the canvas at the default origin point (upper-left corder)
+    context.drawImage(img, 0, 0);
+  }
+</script>

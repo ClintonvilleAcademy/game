@@ -1,0 +1,59 @@
+<img src="images/sprites.png" onload="init()">
+<canvas style="border: solid;"></canvas>
+<script>
+  /*
+   *  Display one sprite at a time in the middle of a default-sized canvas.
+   */
+  function init() {
+    // Turn the page elements into Javascript objects
+    img = document.querySelector('img');
+    canvas = document.querySelector('canvas');
+    
+    // Get the canvas's drawing context, scale it four-fold, and turn off anti-aliasing.
+    context = canvas.getContext('2d');
+    context.scale(4, 4);
+    context.imageSmoothingEnabled = false;
+
+    // Create a "workspace" canvas that isn't displayed onscreen
+    offscreen = document.createElement('canvas');
+    octx = offscreen.getContext('2d');
+
+    // Draw the sprites image onto the hidden canvas
+    offscreen.width = img.width;
+    offscreen.height = img.height;
+    octx.drawImage(img, 0, 0);
+    
+    // Build an array of individual 16x16 sprites as pixel data.
+    imgData = [];
+    for (n = 0; n <= 8; n++) {
+      sprite = octx.getImageData(n * 16, 0, 16, 16);
+      imgData.push(sprite);
+    }
+    
+    // Reset offscreen to size of a single sprite.
+    offscreen.width = 16;
+    offscreen.height = 16;    
+
+    // Draw the next sprite every quarter second.
+    interval = setInterval(drawSprite, 250);    
+  }
+
+  function drawSprite() {
+    // If there aren't any more sprites in the array, stop looping and exit function.
+    if (imgData.length == 0) {
+      clearInterval(interval);
+      return;
+    }
+
+    // Put the next sprite's pixel data directly to the offscreen canvas.
+    sprite = imgData.shift();
+    octx.putImageData(sprite, 0, 0);
+    
+    // Turn the offscreen canvas into an image object, and set it's "onload"
+    // event to draw the image onto the scaled, visible canvas.
+    oImg = new Image();
+    oImg.onload = function() { context.drawImage(oImg, 30, 11) }
+    oImg.src = offscreen.toDataURL();
+  }  
+
+</script>
