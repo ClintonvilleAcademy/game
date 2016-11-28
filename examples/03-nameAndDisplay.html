@@ -20,7 +20,7 @@
 <div></div>
 <script>
   /*
-   *  
+   *  Create a hash of sprites that can be asked for and positioned by name.
    */
   function init() {
     // Turn the page elements into Javascript objects
@@ -42,27 +42,33 @@
     offscreen.height = img.height;
     octx.drawImage(img, 0, 0);
 
+    // Create an additional offscreen canvas that is the size of one sprite
     single = document.createElement('canvas');
     single.width = 16;
     single.height = 16;
     sctx = single.getContext('2d');
 
-    // Build a hash of sprites by their fruit names
+    // Build a hash of sprites with a key of their fruit names, and value of an image
     sprites = {};
     names = ['cherry', 'strawberry', 'orange', 'bell', 'apple', 'grapes', 'dragon', 'key'];
     names.forEach(function(name, ndx) {
+      /*
+       *  To create an image, put the image data of the right area of the larger offscreen canvas
+       *  onto the 1-sprite sized canvas, then use canvas.toDataURL to create a raw image object
+       */ 
       imgData = octx.getImageData(ndx * 16, 0, 16, 16);
       sctx.putImageData(imgData, 0, 0);
       sprites[name] = new Image();
       sprites[name].src = single.toDataURL();
     });
 
-    activeSprite = sprites.cherry;
+    makeActive(sprites.cherry);
     drawSprites();
     
+    // Turn on the speech recognition!
     listener = new webkitSpeechRecognition();
     listener.onend = () => listener.start();
-    listener.onresult = e => parseWords(e.results[0][0].transcript); // Arcane nonsense
+    listener.onresult = e => parseWords(e.results[0][0].transcript);
     listener.start();
   }
 
