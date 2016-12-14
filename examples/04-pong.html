@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<style type="text/css">
+		canvas {border: solid;}
+	</style>
+</head>
+<body onload="init()">
+<canvas width="1000" height="500"></canvas>
+<script type="text/javascript">
+	function init() {
+		play = true;
+		canvas = document.querySelector('canvas');
+		context = canvas.getContext('2d');
+		context.textBaseline = 'top';
+		context.font = '30px sans-serif';
+
+		objects = [];
+		player = new gameObject({
+			pos: { x: 10, y: 200 },
+			size: { w: 20, h: 100 },
+			speed: 3,
+			score: 0
+		});
+
+		computer = new gameObject({
+			pos: { x: 970, y: 200 },
+			size: { w: 20, h: 100 },
+			speed: 7,
+			score: 0
+		});
+
+		ball = new gameObject({
+			pos: {x: 500, y: 250},
+			size: { w: 20, h: 20},
+			speed: 5,
+			vector: {x: 0, y: 0}
+		});
+
+		keyHandler();
+		tick();
+		newBall();
+	}
+
+	function newBall() {
+		ball.pos = {x: 490, y: 240}
+		ball.vector = {x: 0, y: 0}
+		setTimeout(function() { ball.vector.x = -1 }, 1000);
+	}
+
+
+	function gameObject(cfg) {
+		for (field in cfg) this[field] = cfg[field];
+		if (!this.vector) this.vector = {x: 0, y: 0}
+		objects.push(this);
+	}
+
+	function keyHandler() {
+		keys = {ArrowUp: false, ArrowDown: false};
+		addEventListener('keydown', e => { if (e.key in keys) keys[e.key] = true });
+		addEventListener('keyup', e => { if (e.key in keys) keys[e.key] = false });
+	}
+
+	function tick() {
+		player.vector = {x: 0, y: 0}
+		if (keys.ArrowUp) player.vector.y--;
+		if (keys.ArrowDown) player.vector.y++;
+
+		if (ball.vector.x < 0) computer.vector.y = 0;
+		else if (ball.pos.y + ball.size.h < computer.pos.y + computer.size.h/2) computer.vector.y = -1;
+		else if (ball.pos.y > computer.pos.y + computer.size.h/2) computer.vector.y = 1;
+		else computer.vector.y = 0;
+
+		// Clear screen before repainting all objects
+		context.clearRect(0, 0, 1000, 500);
+
+		// Draw center line and score
+		context.fillRect(500, 0, 1, 500);
+		context.fillText(player.score, 250, 0);
+		context.fillText(computer.score, 750, 0);
+
+
+		objects.forEach(o => {
+			var newY = o.pos.y + (o.vector.y * o.speed), newX = o.pos.x + (o.vector.x * o.speed);
+			if (newY > 0 && newY + o.size.h < 500) o.pos.y = newY;
+			else o.vector.y = -o.vector.y;
+
+			o.pos.x = newX;
+			context.fillRect(o.pos.x, o.pos.y, o.size.w, o.size.h);
+		});
+
+		if (ball.pos.x < 10) {
+			computer.score++;
+			newBall();
+		} else if (ball.pos.x > 970) {
+			player.score++;
+			newBall();
+		} else if ([player, computer].some(collides)) {
+			collidedObj.center = {
+				x: collidedObj.pos.x + collidedObj.size.w / 2,
+				y: collidedObj.pos.y + collidedObj.size.h / 2
+			}
+
+			ball.center = {
+				x: ball.pos.x + ball.size.w / 2,
+				y: ball.pos.y + ball.size.h / 2
+			}
+
+			ball.vector.x = ball.center.x < collidedObj.center.x ? -1 : 1;
+			ball.vector.y = (ball.center.y - collidedObj.center.y) / 25;
+		}
+
+		if (play) requestAnimationFrame(tick);
+	}
+
+	function collides(obj) {
+		if (ball.pos.x > obj.pos.x + obj.size.w
+			|| ball.pos.y > obj.pos.y + obj.size.h
+			|| ball.pos.x + ball.size.w < obj.pos.x
+			|| ball.pos.y + ball.size.h < obj.pos.y
+			) return false;
+		collidedObj = obj;
+		return true;
+	}
+</script>
+</body>
+</html>
