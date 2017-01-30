@@ -1,0 +1,38 @@
+<body onload="resizeCanvas()">
+<canvas id="cnv" style="border: solid;"></canvas>
+<script>
+	const radius = 8, spacing = 22, rowLength = 30;
+
+	const cr = Math.PI * 2;
+	const ctx = cnv.getContext('2d');
+	const rightSide = spacing * (rowLength + 2);
+
+	addEventListener('resize', resizeCanvas);
+
+	function resizeCanvas() {
+		cnv.width = innerWidth - 20;
+		cnv.height = innerHeight - 20;
+		drawPattern();	
+	};
+
+	function drawCircle(x, y) {
+		ctx.moveTo(x + radius, y);
+		ctx.arc(x, y, radius, 0, cr);
+	}
+
+	function drawPattern() {
+  		ctx.beginPath();
+		drawCircle(100, 100);  		
+		// for (let i = 2; i < rowLength + 2; i++) {
+		// 	let o = rowLength + 3 - i;
+		// 	drawCircle(i * spacing, spacing);
+		// 	drawCircle(spacing, o * spacing);
+
+		// 	ctx.moveTo(i * spacing, spacing);
+		// 	ctx.lineTo(spacing, o * spacing);
+		// }
+
+		ctx.stroke();
+	}
+
+</script>

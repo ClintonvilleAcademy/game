@@ -1,0 +1,35 @@
+<body>
+  <script>
+    var canvas, context, img;
+    
+    var scale = .75;
+    
+    function init() {
+      img = document.querySelector('img');
+      canvas = document.querySelector('canvas');
+      canvas.height = img.height * scale;
+      canvas.width = img.width * scale;
+      
+      context = canvas.getContext('2d');
+      context.scale(scale, scale);
+      
+      context.drawImage(img, 0, 0);
+      canvas.onclick = countryName;
+      context.fillStyle = 'blue';
+      context.resetTransform();
+      context.font = '20px sans-serif';
+    }
+    
+    function countryName(e) {
+      var x = e.offsetX;
+      var y = e.offsetY;
+      var name = prompt('Country name:');
+      
+      context.fillText(name, x, y);
+    }
+  </script>
+  
+  <img style="display: none;" src="images/homework_small.png"
+       onload="init()">
+  <canvas style="border: solid;"></canvas>
+</body>
