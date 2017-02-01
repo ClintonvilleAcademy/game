@@ -1,0 +1,32 @@
+<body>
+  <div id="user"></div>
+  <textarea id="chat" cols="100" rows="40"></textarea>
+  <br>
+  <form id="f">
+    <input id="message" size="80" autocomplete="off">
+  </form>
+  <script>
+    ws = new WebSocket('ws://138.197.24.38:8080');
+    f.onsubmit = _ => {
+      send(message.value);
+      message.value = '';
+      return false
+    }
+    userName = prompt("What is your name?");
+    user.textContent = userName;
+    message.focus();
+    
+    ws.onmessage = m => {
+      var obj = JSON.parse(m.data);
+      chat.value += obj.name + ': ' + obj.data + '\n';
+    }
+    
+    function send(data) {
+      var str = JSON.stringify({
+        name: userName,
+        data: data
+      });
+      ws.send(str);
+    }
+  </script>
+</body>
