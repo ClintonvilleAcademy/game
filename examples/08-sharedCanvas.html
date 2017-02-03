@@ -3,24 +3,32 @@
 </style>
 <body>
   <div id="user"></div>
-  <canvas id="localCanvas" width="500" height="500"></canvas>
-  <canvas id="echoCanvas" width="500" height="500"></canvas>
+  <canvas id="localCanvas" width="500" height="350"></canvas>
+  <canvas id="echoCanvas" width="500" height="350"></canvas>
   <script>
     ws = new WebSocket('ws://138.197.24.38:8080');
+    imgs = {}
     
     ws.onmessage = m => {
+      var obj = JSON.parse(m.data);
       var i = new Image();
       i.onload = _ => {
-        echoContext.clearRect(0, 0, echoCanvas.width, echoCanvas.height);
-        echoContext.drawImage(i, 0, 0);
+        imgs[obj.color] = i;
+        newImages = true;
       }
-      i.src = m.data;
+      i.src = obj.img;
     }
+
+    userName = prompt("What's your name?");
+    color = prompt("What's your favorite color?");
+    user.textContent = userName;
 
     echoContext = echoCanvas.getContext('2d');
     localContext = localCanvas.getContext('2d');
-    localContext.strokeStyle = prompt("What's your favorite color?");
+    localContext.strokeStyle = color;
+
     newStuff = false;
+    newImages = false;
     localCanvas.onmousedown = e => {
       localContext.moveTo(e.offsetX, e.offsetY)
     }
@@ -34,12 +42,22 @@
       }
     }
 
-    setInterval(send, 250);
+    setInterval(tick, 250);
     
-    function send() {
-      if (!newStuff) return;
-      ws.send(localCanvas.toDataURL());
-      newStuff = false;
+    function tick() {
+      if (newStuff) {
+        var str = JSON.stringify({
+          user: userName,
+          img: localCanvas.toDataURL()
+        });
+        ws.send(str);
+        newStuff = false;
+      }
+      if (newImages) {
+        newImages = false;
+        echoContext.clearRect(0, 0, echoCanvas.width, echoCanvas.height);
+        for (i in imgs) echoContext.drawImage(imgs[i], 0, 0);
+      }
     }
   </script>
 </body>
