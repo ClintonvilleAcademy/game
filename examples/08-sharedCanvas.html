@@ -3,9 +3,19 @@
 </style>
 <body>
   <div id="user"></div>
-  <canvas id="localCanvas" width="500" height="350"></canvas>
-  <canvas id="echoCanvas" width="500" height="350"></canvas>
+  <button onclick="setcolor(this)">red</button>
+  <button onclick="setcolor(this)">orange</button>
+  <button onclick="setcolor(this)">yellow</button>
+  <button onclick="setcolor(this)">green</button>
+  <button onclick="setcolor(this)">blue</button>
+  <button onclick="setcolor(this)">purple</button>
+  <button onclick="setcolor(this)">black</button>
+  <canvas id="localCanvas" width="800" height="350"></canvas>
+  <canvas id="echoCanvas" width="800" height="350"></canvas>
   <script>
+function setcolor(obj) {
+  localContext.strokeStyle = obj.textContent;
+}
     ws = new WebSocket('ws://138.197.24.38:8080');
     imgs = {}
     
@@ -13,19 +23,17 @@
       var obj = JSON.parse(m.data);
       var i = new Image();
       i.onload = _ => {
-        imgs[obj.color] = i;
+        imgs[obj.user] = i;
         newImages = true;
       }
       i.src = obj.img;
     }
 
     userName = prompt("What's your name?");
-    color = prompt("What's your favorite color?");
     user.textContent = userName;
 
     echoContext = echoCanvas.getContext('2d');
     localContext = localCanvas.getContext('2d');
-    localContext.strokeStyle = color;
 
     newStuff = false;
     newImages = false;
