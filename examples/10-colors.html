@@ -1,0 +1,15 @@
+<canvas id="cnv" style="border:solid"></canvas>
+<script>
+cnv.width = innerWidth - 20;
+cnv.height = innerHeight - 20;
+
+ctx = cnv.getContext('2d');
+
+colors = "red lime blue magenta yellow cyan".split(' ');
+colors.forEach( (c, index) => {
+  ctx.fillStyle = c;
+  console.log(c + ': ' + ctx.fillStyle);
+  ctx.fillRect(0, 50 * index, 50, 50);
+})
+  
+</script>

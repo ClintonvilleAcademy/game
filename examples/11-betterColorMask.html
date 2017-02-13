@@ -1,0 +1,51 @@
+<body style="margin:0;">
+<canvas id="cnv"></canvas>
+<script>
+	var edge = 100;
+	var ctx = cnv.getContext('2d');
+	cnv.width = innerWidth;
+	cnv.height = innerHeight;
+	ctx.font = edge + 'px Arial Black';
+
+  chars = [
+		{ letter: 'A', color: 'cyan' },   // #0ff
+		{ letter: 'B', color: 'magenta'}, // #f0f
+		{ letter: 'C', color: 'yellow'}   // #ff0
+	];
+
+	var colors = 'red lime blue'.split(' '); // #f00, #0f0, #00f
+	var offscreen = document.createElement('canvas'), octx = offscreen.getContext('2d');
+	offscreen.width = edge;
+	offscreen.height = colors.length * edge;
+	colors.forEach((c, ndx) => {
+		octx.fillStyle = c;
+		octx.fillRect(0, ndx * edge, edge, edge)
+	});
+	var colorStick = new Image();
+	colorStick.canvasX = 0;
+	colorStick.canvasY = 0;
+	colorStick.onload = draw;
+	colorStick.src = offscreen.toDataURL();
+
+	var md = false;
+	addEventListener('mousedown', e => md = true);
+	addEventListener('mouseup', e => md = false);
+	addEventListener('mousemove', e => {
+		if (!md) return;
+		colorStick.canvasX += e.movementX;
+		colorStick.canvasY += e.movementY;
+		draw();
+	});
+
+	function draw() {
+		ctx.clearRect(0, 0, cnv.width, cnv.height);
+		ctx.globalCompositeOperation = 'darken';
+		chars.forEach((c, ndx) => {
+			ctx.fillStyle = c.color;
+			ctx.fillText(c.letter, 200, 200)
+		})
+
+		ctx.drawImage(colorStick, colorStick.canvasX, colorStick.canvasY);
+	}
+
+</script>

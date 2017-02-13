@@ -1,0 +1,155 @@
+<style>
+	canvas { border: solid; }
+	textarea {
+		height: 50%;
+		width: 100%;
+		font-size: 25px;
+	}
+	button {
+		background: green;
+		height: 80px;
+		width: 80px;
+		font-size: 30px;
+		margin: 10px 20px 0 0;
+	}
+	pre {
+		font-family: serif;
+		white-space: pre-wrap;
+    font-size: 25px;
+		}
+	div {
+		display: inline-block;
+	}
+</style>
+
+<div id="lft" style="width: 75%">
+	<canvas id="cnv"></canvas>
+</div>
+<div style="width: 25%; float: right;">
+	<textarea id="txt">
+re 4 [
+	fo 100
+	ri 90
+]
+	</textarea>
+	<button style="background: green;" onclick="runScript()">Run</button>
+	<button style="background: red;" onclick="stopScript()">Stop</button>
+	<pre>
+Commands:
+
+pu: Pen up
+pd: Pen down
+fo #: Move forward # pixels
+ri #: Turn right # degrees
+le #: Turn left # degrees
+re # [ commands ]: Repeat commands between braces # times
+	</pre>
+</div>
+
+<script>
+var lexer = new RegExp(/[a-z]+|\d+|\S/g);
+var keepGoing = false;
+var script = [], stack = [], dist = 0;
+var speed = 10;
+var penDown = false;
+
+var ctx = cnv.getContext('2d');
+
+var offscreen = document.createElement('canvas');
+var octx = offscreen.getContext('2d');
+
+addEventListener('resize', resize);
+resize();
+ctx.translate(cnv.width / 2, cnv.height / 2);
+
+var turtle = new Image();
+turtle.onload = e => {
+	turtle.offsetX = -turtle.width / 2;
+	turtle.offsetY = -turtle.height / 2;
+	ctx.drawImage(turtle, turtle.offsetX, turtle.offsetY)
+}
+turtle.src = 'images/turtle.png';
+
+function resize() {
+	cnv.width = parseInt(getComputedStyle(lft).width) - 10;
+	cnv.height = innerHeight - 20
+}
+
+function runScript() {
+	ctx.resetTransform();
+	ctx.translate(cnv.width / 2, cnv.height / 2);
+	keepGoing = true;
+	penDown = true;
+	pos = 0;
+	dist = 0;
+	stack = [];	
+	script = txt.value.match(lexer);
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	tick()
+}
+
+function stopScript() {
+	keepGoing = false
+}
+
+function tick() {
+	processNextAction();
+	draw();
+	if (keepGoing) requestAnimationFrame(tick)
+}
+
+function draw() {
+	ctx.save();
+	ctx.resetTransform();
+	ctx.clearRect(0, 0, cnv.width, cnv.height);
+	ctx.restore();
+	ctx.stroke();
+	if (keepGoing) ctx.drawImage(turtle, turtle.offsetX, turtle.offsetY)
+}
+
+function processNextAction() {
+	var cmd = script[pos];
+	console.log(cmd);
+	if (cmd == 'pu') {
+		penDown = false;
+		pos++;
+	} else if (cmd == 'pd') {
+		penDown = true;
+		pos++;
+	} else if (cmd == 'fo') {
+		if (!dist) dist = script[pos + 1];
+		var len = Math.min(speed, dist);
+		ctx.translate(0, -len)
+		if (penDown) ctx.lineTo(0, 0);
+		else ctx.moveTo(0, 0);
+		dist -= len;
+		if (dist == 0) pos += 2;
+	} else if (cmd == 'ri') {
+		ctx.rotate(degreesToRads(script[pos + 1]));
+		pos += 2;
+	} else if (cmd == 'le') {
+		ctx.rotate(-degreesToRads(script[pos + 1]));
+		pos += 2;
+	} else if (cmd == 're') {
+		stack.unshift({pos: pos + 3, count: script[pos + 1]});
+		pos += 3;
+	} else if (cmd == ']') {
+		console.log(JSON.stringify(stack));
+		if (--stack[0].count == 0) {
+			stack.shift();
+			pos++;
+		} else {
+			pos = stack[0].pos;
+		}
+	} else {
+		throw "Unrecognized command: " + cmd;
+	}
+	if (pos >= script.length) keepGoing = false;
+}
+
+function degreesToRads(d) {
+    return Math.PI * d / 180;
+}
+
+</script>

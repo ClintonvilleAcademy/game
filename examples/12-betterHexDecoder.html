@@ -1,0 +1,176 @@
+<style>
+	body {margin: 0; background: lightGrey;}
+</style>
+<body onload="init()">
+<canvas id="cnv"></canvas>
+<script>
+var sixth = Math.PI / 3;
+var colors = ['red', 'lime', 'blue'];
+var letterColors = ['cyan', 'magenta', 'yellow'];
+var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+var xStep = 50, yStep = 44, r = 28;
+var ctx;
+var reveal = {
+	colors: null,
+	image: null,
+	diameter: 17,
+	x: 500,
+	y: 0,
+	rotation: sixth
+};
+
+var isMouseDown = false, isShiftDown = false;
+
+var chars = [];
+
+function init() {
+	ctx = cnv.getContext('2d');
+	addEventListener('resize', onResize);
+	addEventListener('mousedown', e => isMouseDown = true);
+	addEventListener('mouseup', e => isMouseDown = false);
+	addEventListener('mouseout', e => isMouseDown = false);
+	addEventListener('mousemove', onDrag);
+
+	addEventListener('keydown', e => {
+		if (e.key == 'Shift') isShiftDown = true;
+	});
+	addEventListener('keyup', e => {
+		if (e.key == 'Shift') isShiftDown = false;
+	});
+
+	getReveal();
+	getLetters();
+	onResize();
+}
+
+function onDrag(e) {
+	if (isMouseDown) {
+		if (isShiftDown) {
+			// reveal.rotation += e.movementY / 250;
+			var origin = [reveal.x + reveal.image.width / 2, reveal.y + reveal.image.height / 2];
+			var oldMousePos = [e.offsetX - e.movementX, e.offsetY - e.movementY];
+			var oldAngle = Math.atan2(oldMousePos[0] - origin[0], oldMousePos[1] - origin[1]);
+			var newAngle = Math.atan2(e.offsetX - origin[0], e.offsetY - origin[1]);
+			reveal.rotation -= newAngle - oldAngle;
+		} else {
+			reveal.x += e.movementX;
+			reveal.y += e.movementY;
+		}
+		display();
+	}
+}
+
+function display() {
+	if (!chars.length) return;
+	ctx.resetTransform();
+	ctx.clearRect(0, 0, cnv.width, cnv.height);
+
+	ctx.translate(reveal.x + reveal.image.width / 2, reveal.y + reveal.image.height / 2);
+	ctx.rotate(reveal.rotation);
+	ctx.drawImage(reveal.image, -reveal.image.width / 2, -reveal.image.height / 2);
+	ctx.resetTransform();
+
+	chars.forEach( c => drawLetter(c.x, c.y, c.letter, c.color));
+}
+
+function getReveal() {
+	reveal.colors = [];
+	reveal.image = new Image();
+	reveal.image.onload = display;
+
+	var offscreen = document.createElement('canvas');
+	offscreen.width = reveal.diameter * xStep;
+	offscreen.height = (reveal.diameter + 1) * (yStep + 1);
+	var ctx = offscreen.getContext('2d');
+
+	for (var y = 1; y < 18; y++) {
+		var limit = Math.abs(9 - y);
+		var start = Math.floor(limit / 2) + 1;
+		var length = 17 - limit;
+		for (var x = start; x < start + length; x++) {
+			var color = getColor();
+			reveal.colors.push({x: x, y: y, color: color})
+			drawHex(x, y, color);
+		}
+	}
+
+	reveal.image.src = offscreen.toDataURL();
+
+	function drawHex(x, y, c) {
+		var newX = x * xStep, newY = y * yStep;
+		if (y % 2) newX -= xStep / 2;
+		ctx.resetTransform();
+		ctx.translate(newX, newY);
+	
+		ctx.beginPath();
+		ctx.moveTo(0, r);
+	
+		for (var i = 0; i < 6; i++) {
+			ctx.rotate(sixth);
+			ctx.lineTo(0, r);
+		}
+	
+		ctx.fillStyle = c;
+		ctx.fill();
+	}
+
+}
+
+function onResize() {
+	cnv.width = innerWidth;
+	cnv.height = innerHeight;
+
+	ctx.font = '50px sans-serif';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+
+	ctx.globalCompositeOperation = 'darken';
+	display();
+}
+
+function getColor() {
+	var index = Math.floor(Math.random() * 3);
+	return colors[index];
+}
+
+function getHexColor(x, y) {
+	var hex = reveal.colors.filter(c => c.x == x && c.y == y)[0];
+	return hex.color;
+}
+
+function getLetters() {
+	var lines = ['WEST', 'FORTY', 'YARDS','FROM','CASTLE'];
+	var y = 6, x;
+	lines.forEach(line => {
+		y++;
+		x = 3;
+		line.split('').forEach(letter => {
+			x++;
+			var index = colors.indexOf(getHexColor(x, y));
+
+			var color = letterColors[index];
+			chars.push({x: x, y: y, color: color, letter: letter});
+
+			for (let i = 0; i < 2; i++) {
+				index = (index + 1) % 3;
+				color = letterColors[index];
+				chars.push({x: x, y: y, color: color, letter: getLetter()});
+			}
+		})
+	})
+}
+
+function getLetter() {
+	var index = Math.floor(Math.random() * 26);
+	return letters[index];	
+}
+
+function drawLetter(x, y, l, c) {
+	var newX = x * xStep, newY = y * yStep;
+	if (y % 2) newX -= xStep / 2;
+
+	ctx.fillStyle = c;
+	ctx.fillText(l, newX, newY);
+ }
+
+</script>
