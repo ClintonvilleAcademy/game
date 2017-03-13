@@ -26,6 +26,15 @@
 var ctx = cnv.getContext('2d');
 var grammars = [
   {
+    name: 'Axial tree',
+    startAngle: 0,
+    turnAngle: 30,
+    axiom: 'F',
+    rules: {
+      F: 'F[+F]F[-F]F'
+    }
+  },
+  {
     name: 'Snowflake',
     startAngle: 30,
     turnAngle: 60,
@@ -151,6 +160,15 @@ var grammars = [
     }
   },
   {
+    name: 'Minkowski',
+    startAngle: 0,
+    turnAngle: 90,
+    axiom: 'F+F+F+F',
+    rules: {
+      F: 'F-F+F',
+    }
+  },
+  {
     name: 'Spiral',
     startAngle: 0,
     turnAngle: 90,
@@ -158,6 +176,16 @@ var grammars = [
     rules: {
       Y: 'FY',
       X: 'XFY+FY+'
+    }
+  },
+  {
+    name: 'T-Square',
+    startAngle: 0,
+    turnAngle: 90,
+    axiom: 'F+XFF+XFF+XFF+XF',
+    rules: {
+      X: '-Y-F+XFF+XFF+XF-Y',
+      Y: 'YFY'
     }
   }
 ];
@@ -255,7 +283,7 @@ function setupInput() {
 
 function step() {
   if (current.length > 250000) {
-    ctx.resetTransform();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillText('Press escape to return to the menu', 100, 200);
     return;
   }
@@ -281,7 +309,7 @@ function step() {
 }
 
 function draw() {
-  ctx.resetTransform();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, cnv.width, cnv.height);
   ctx.fillText(grammar.name, 20, 40);
   ctx.fillText('Iteration ' + iteration, 20, 80);
