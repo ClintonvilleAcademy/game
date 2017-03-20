@@ -102,7 +102,6 @@ function Coin(pos) {
   this.basePos = this.pos = pos.plus(new Vector(0.2, 0.1));
   this.wobble = Math.random() * Math.PI * 2;
 }
-Coin.prototype = new GameObject;
 
 Coin.prototype.draw = function(context) {
   context.fillStyle = 'rgb(241, 229, 89)';
@@ -273,7 +272,7 @@ function playerTouched(type, actor) {
 }
 
 function drawFrame() {
-  ctx.resetTransform();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = 'rgb(52, 166, 251)';
   ctx.fillRect(0, 0, cnv.width, cnv.height);
   ctx.scale(scale, scale);
@@ -311,7 +310,7 @@ function runLevel(n) {
     else if (n < levels.length - 1) {
       runLevel(n + 1)
     } else {
-      ctx.resetTransform();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = 'white';
       ctx.fillRect(100, 75, 115, 30);
       ctx.fillStyle = 'black';
