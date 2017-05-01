@@ -1,0 +1,905 @@
+<!doctype html>
+<html><head>
+<script>
+/*  Pufftygraph
+ 
+    An iPhone web app hypotrochoid generator
+  
+    Written by Curtis Autery in 2011/12 for his daughter Scout
+    Released under the GNU GPL 3 (http://www.gnu.org/licenses/gpl.html)
+*/
+
+var c;      // Container - Main DIV tag in body
+var cnv;    // HTML5 canvas object
+var ctx;    // 2D context for cnv
+
+var gf;     // Gear Factory - Creates predefined gear objects
+var setMgr; /* Set Manager - A "Set" is an outer ring, and inner gear, center
+               coordinates, and a drawing color. The Set Manager records where the
+               gears are currently, and what's been drawn with the current set */
+var menuMgr, ih;
+var ctrl = new Controller();
+
+var cr = Math.PI * 2;   // a circle, in radians
+var qcr = Math.PI / 2;  // a quarter circle
+var interval = null; // used in a timer for screen refreshes
+
+var drawing;   // Image of the drawing so far
+var gearImage; // Image of active gear
+var ringImage; // Image of active ring
+
+// Euclid's algorithm for greatest common divisor 
+Math.gcd = function(a, b) {
+    var aModB = a % b;
+    return (aModB == 0) ? b : Math.gcd(b, aModB);
+}
+
+/* Least common multiple, used to determine how many gear cogs total are turned
+   before the inner ring returns to the top in its original orientation (i.e., when
+   to stop drawing). */
+Math.lcm = function(a, b) { return a / Math.gcd(a, b) * b; }
+
+function init() {
+  // Create the canvas object, set its size, and get the 2D context
+  cnv = document.createElement('canvas');
+  cnv.width = innerWidth;
+  cnv.height = innerHeight;
+  ctx = cnv.getContext('2d');
+  cnv.style.zIndex = 1;
+
+  /* Create empty image objects for the outer ring and inner gear. These will be
+     filled in when the first Set Manager is created */
+  ringImage = new Image();
+  gearImage = new Image();
+  ringImage.style.zIndex = 0;
+  gearImage.style.zIndex = 0;
+
+  // Append the canvas and ring images to the page
+  c = document.getElementById('container');
+  c.appendChild(cnv);
+  c.appendChild(gearImage);
+  c.appendChild(ringImage);
+
+  /* The InputHandler manages the user's interaction with the gears, including whether
+     the gears are being positioned to a new center or being drawn with. */
+  ih = new InputHandler();
+
+  /* The MenuManager is a quick hack at a tool selection interface. It pulls image
+     chunks out of a larger image containing all the tools, groups them into sets,
+     and links them to callback functions and what tool group to display next. */
+  menuMgr = new MenuManager();
+
+  gf = new GearFactory();
+  drawing = new Image();
+  drawing.style.zIndex = 0;
+  drawing.src = cnv.toDataURL();
+  c.appendChild(drawing);
+}
+
+function Controller() {
+    var ring, gear, penColor;
+
+  /* initSet instructs the set manager to create a new drawing "set" (outer ring,
+     inner gear, which gear hole to put the pen, the pen's color, and where the
+     set is on the page). It should be called initially with at least a ring, gear,
+     and hole specified. Later calls can omit variables, and a default will be used */
+  this.initSet = function(ringNum, gearNum, hole, color, centerX, centerY) {
+    pt_initSet(ringNum, gearNum, hole, color, centerX, centerY);
+  }
+
+  this.nextGear = function() { pt_nextGear(); }
+  this.nextRing = function() { pt_nextRing(); }
+  this.nextHole = function() { pt_nextHole(); }
+
+  this.setColor      = function(color) { pt_setColor(color); }
+  this.getPosByAngle = function(x, y)  { return pt_getPosByAngle(x, y); }
+  this.drawToGoal    = function(goal)  { pt_drawToGoal(goal); }
+
+  function pt_setColor(color)     {
+    snapShot();
+    penColor = color;
+    setMgr.setColor(color);
+  }
+  function pt_getPosByAngle(x, y) { return setMgr.getPosByAngle(x, y) }
+  function pt_drawToGoal(goal)    { setMgr.drawToGoal(goal); }
+
+  function pt_initSet(ringNum, gearNum, hole, color, centerX, centerY) {
+    if (ringNum != null) ring = gf.getRing(ringNum);
+    if (gearNum != null) gear = gf.getGear(gearNum);
+    if (hole != null) gear.activeHole = hole;
+    if (color == null)   color = setMgr.color;
+    if (centerX == null) centerX = cnv.width / 2;
+    if (centerY == null) centerY = cnv.height / 2;
+    setMgr = new SetManager(ring, gear, centerX, centerY, color);
+  }
+
+  function pt_nextGear() {
+    var centerX = setMgr.centerX;
+    var centerY = setMgr.centerY;
+    var gearNum = gf.nextGearNum();
+    pt_initSet(null, gearNum, 0, null, centerX, centerY);
+  }
+
+  function pt_nextRing() {
+    var centerX = setMgr.centerX;
+    var centerY = setMgr.centerY;
+    var ringNum = gf.nextRingNum();
+    pt_initSet(ringNum, null, 0, null, centerX, centerY);
+  }
+
+  function pt_nextHole() {
+    var centerX = setMgr.centerX;
+    var centerY = setMgr.centerY;
+    var holeNum = gf.nextHoleNum();
+    pt_initSet(null, null, holeNum, null, centerX, centerY);
+  }
+
+}
+
+function refresh() {
+  ctx.clearRect(0, 0, cnv.width, cnv.height);
+  ctx.stroke();
+  menuMgr.showActive();
+}
+
+function initDefaultSet() {
+  ctrl.initSet(1, 12, 10, 'red');
+}
+
+function snapShot(callback) {
+//  if (callback == null && setMgr.hasDrawn() == false) return;
+  ctx.clearRect(0, 0, cnv.width, cnv.height);
+  ctx.drawImage(drawing, 0, 0);
+  ctx.stroke();
+  if (callback == null) {
+    drawing.src = cnv.toDataURL();
+    ctx.beginPath();
+    refresh();
+  } else {
+    drawing.onload = function(vars) {
+      callback(vars);
+      drawing.onload = null;
+      initDefaultSet();
+    }
+    drawing.src = cnv.toDataURL();
+  }
+}
+
+function SetManager(ring, gear, centerX, centerY, color) {
+  var pos = 0;     // Which cog on the outer ring the inner gear touches
+  var destPos = 0; // Destination position. Where the user has dragged the gear to
+
+  var rc4 = ring.cogs / 4; // Avoid unnecessary divisions in click position function
+  var rc2 = ring.cogs / 2; // ...and drawToGoal function
+
+  this.centerX = centerX;
+  this.centerY = centerY;
+  this.hasDrawn = function() { return (pos > 0); }
+
+  var ringPositions = [];
+  var gearPositions = [];
+
+  gear.offsetX = centerX - gear.radius;
+  gear.offsetY = centerY - gear.radius;
+  gearImage.src = gear.image.src;
+  ringImage.src = ring.image.src;
+  ringImage.style.left = (centerX - ring.radius) + 'px';
+  ringImage.style.top  = (centerY - ring.radius) + 'px';
+
+  if (interval != null) stop();
+  buildPositions();
+
+  this.getPosByAngle = function(x, y) {
+    x -= centerX;
+    y -= centerY;
+    var clickPos = Math.atan2(y, x) / cr * ring.cogs + rc4;
+    if (clickPos < 0) clickPos += ring.cogs;
+    return(Math.floor(clickPos));
+  }
+
+  this.drawToGoal = function(goal) {
+    var currentCog = pos % ring.cogs;
+    if (goal < currentCog) currentCog -= ring.cogs;
+    var steps = goal - currentCog;
+    if (steps > rc2) return;
+    destPos = pos + steps;
+    if (interval == null) {
+      interval = setInterval(positionGear, 0);
+      drawSet();
+    }
+  }
+
+  function buildPositions() {
+    var offset = gear.radius - ring.radius;
+    var hole = gear.holes[gear.activeHole];
+
+    for (var n = 0; n < ring.cogs; n++) {
+      var rotation = (n % ring.cogs) * ring.step;
+      var x = (-Math.sin(rotation) * offset);
+      var y = (Math.cos(rotation) * offset);
+      ringPositions.push([x, y]);
+    }
+
+    var lcm = Math.lcm(ring.cogs, gear.cogs);
+    for (var n = 0; n < lcm; n++) {
+      var ringPos = n % ring.cogs;
+      var gearPos = n % gear.cogs;
+      var rotation = ringPos * ring.step - gearPos * gear.step;
+      var sin = Math.sin(rotation);
+      var cos = Math.cos(rotation)
+      var x = (cos * hole[0] - sin * hole[1]) + ringPositions[ringPos][0] + centerX;
+      var y = (sin * hole[0] + cos * hole[1]) + ringPositions[ringPos][1] + centerY;
+      gearPositions.push([x, y, rotation]);
+    }
+  }
+
+  drawSet = function() {
+    while (pos < destPos) {
+      pos++;
+      if (pos < gearPositions.length) ctx.lineTo(gearPositions[pos][0], gearPositions[pos][1]);
+      else if (pos == gearPositions.length) ctx.lineTo(gearPositions[0][0], gearPositions[0][1]);
+    }
+    stop();
+    return;
+  }
+
+  stop = function() {
+    clearInterval(interval);
+    interval = null;
+    positionGear();
+  }
+
+  positionGear = function() {
+    var ringPos = ringPositions[pos % ringPositions.length];
+    var gearPos = gearPositions[pos % gearPositions.length];
+    gearImage.style.left = (ringPos[0] + gear.offsetX) + 'px';
+    gearImage.style.top  = (ringPos[1] + gear.offsetY) + 'px';
+    gearImage.style['-webkit-transform'] = 'rotate(' + gearPos[2] + 'rad)';
+    refresh();
+  }
+
+  this.setColor = function(color) {
+    if (color == null) color = 'red';
+    this.color = color;
+    ctx.strokeStyle = color;
+    positionGear();
+    if (pos < gearPositions.length) {
+      var pen = gf.getPen(color);
+      var gearPos = gearPositions[pos];
+      ctx.moveTo(gearPos[0], gearPos[1]);
+      ctx.drawImage(pen, gearPos[0] - 4, gearPos[1] - 4);
+    }
+  }
+
+  this.setColor(color);
+
+  return this;
+}
+
+/* Find intersection points between two circles. Based on Paul Bourke's nice
+   description of circle intersection math (http://paulbourke.net/geometry/2circle/).
+   Used for finding locations for gear holes */
+function circleIntersect(x1, y1, r1, x2, y2, r2) {
+  var ans = new Object();
+
+  function noAnswer(reason) {
+    ans.numPoints = 0;
+    ans.reason = reason;
+    return ans;
+  }
+
+  // Find distance between centers
+  var d = Math.sqrt( Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2) );
+
+  if (d == 0) return noAnswer('Same origin point');
+  if (d > r1 + r2) return noAnswer("Circles don't intersect");
+  if (d < Math.abs(r1 - r2)) return noAnswer('Once circle contains the other');
+
+  // Find distance to center of "wedge" of circle intersections from point (x1, y1)
+  var a = (d * d + r1 * r1 - r2 * r2) / (2 * d);
+
+
+  /* Find point (x3, y3) on line between circle radii that is "a" distance away from
+    point (x1, y1). This point is the exact center of the insersection wedge, and
+    hence between the intersection points. */
+
+  var x3 = x1 + a * (x2 - x1) / d;
+  var y3 = y1 + a * (y2 - y1) / d;
+
+  // If "a" is the same as circle 1's radius, the two circles are tangent at x3, y3
+  if (a == r1) {
+    ans.numPoints = 1;
+    ans.x1 = x3;
+    ans.y1 = y3;
+    return ans;
+  }
+
+  // Otherwise, the circles intersect at two points.
+  ans.numPoints = 2;
+
+  // Height of triangle between points (x1, y1), (x3, y3), and either intersection point
+  var h = Math.sqrt(r1 * r1 - a * a);
+
+  /* And finally, find two points "h" away from (x3, y3) perpendicular to line between
+    center of two circles. These are the intersection points */
+  ans.x1 = x3 + h * (y2 - y1) / d;
+  ans.y1 = y3 - h * (x2 - x1) / d;
+  ans.x2 = x3 - h * (y2 - y1) / d;
+  ans.y2 = y3 + h * (x2 - x1) / d;
+
+  return ans;
+}
+
+function GearFactory() {
+  var holeRadius = 4;
+  var th = 5;    // Tooth height, and bottom width
+  var tw = 2.5;  // Top width
+  var tm = 1.25; /* How far to move in from left edge when drawing tooth top.
+                   (If modifying, keep the whole/half/quarter ratio to maintain
+                    the isosceles trapezoid shape.) */
+
+  var ringNum = 0
+  var gearNum = 0;
+
+  var gears = [];
+  var rings = [];
+  var sizes = [ [25, 5], [30,  8], [32, 9], [36, 11], [40, 13], [42, 14], [45, 16]
+   ,[46, 17], [50, 18], [52, 19], [56, 21], [60, 23], [63, 25], [64, 25], [72, 29]
+   ,[75, 31], [80, 33], [84, 35] ];
+
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('2d');
+  context.textAlign = "center";
+
+  for (var n = 0; n < sizes.length; n++) {
+    var cogs  = sizes[n][0];
+    var holes = sizes[n][1];
+    gears[n] = new Gear(cogs, holes, 14);
+  }
+
+  rings[0] = new Gear(96);
+  rings[1] = new Gear(105);
+
+  canvas.width = holeRadius * 2;
+  var pens = {red : null, green : null, blue : null, purple : null};
+  for (var c in pens) {
+    pens[c] = new Image();
+    canvas.height = canvas.width;
+    context.moveTo(canvas.width, holeRadius);
+    context.fillStyle = c;
+    context.arc(holeRadius, holeRadius, holeRadius, cr, false);
+    context.fill();
+    pens[c].src = canvas.toDataURL();
+  }
+
+  this.getGear = function(index) { gearNum = index; return gears[index]; }
+  this.getRing = function(index) { ringNum = index; return rings[index]; }
+  this.getPen = function(color) { return pens[color]; }
+
+  this.nextGearNum = function() { return nextNum(gears, gearNum); }
+  this.nextRingNum = function() { return nextNum(rings, ringNum); }
+  this.nextHoleNum = function() {
+    var gear = gears[gearNum];
+    if (gear.activeHole == null) return 1;
+    var nextHole = gear.activeHole + 1;
+    return nextHole >= gear.holes.length ? 0 : nextHole;
+  }
+
+  function nextNum(obj, start) {
+    var index = start + 1;
+    return index >= obj.length ? 0 : index;
+  }
+
+  function Gear(cogs, holes, sep) {
+    var holePositions = [];
+
+    function addHole(x, y) {
+      context.moveTo(x + holeRadius, y);
+      context.arc(x, y, holeRadius, cr, false);
+      holePositions.push([x, y]);
+    }
+
+    var scale = (cogs * 6) / cr;
+    var gearRadius = scale + Math.max(tw, th) + 1;
+    var side = gearRadius * 2;
+    canvas.width = side; // Also resets transformation matrix
+    canvas.height = side;
+
+    context.strokeStyle = '#555';
+    context.fillStyle = '#555';
+    context.translate(gearRadius, gearRadius);
+    context.beginPath();
+    context.moveTo(-tw, -scale);
+    var rotateAngle = cr/cogs;
+    for (var n = 0; n < cogs; n++) {
+      context.translate(0, -scale);
+      context.lineTo(-tm, -th);
+      context.lineTo(tm, -th);
+      context.lineTo(tw, 0);
+      context.translate(0, scale);
+      context.rotate(rotateAngle);
+      context.lineTo(-tw, -scale);
+    }
+    if (holes > 0) {
+      var offset = 4;
+      var r = scale / (holes + offset + 1); // Distance from center multiplier
+      context.moveTo(holeRadius, 0);
+
+      var lastx = r * 5;
+      var lasty = 0;
+      addHole(lastx, lasty);
+
+      for (var n = 1; n < holes; n++) {
+        var ans = circleIntersect(0, 0, r * (n + offset), lastx, lasty, sep);
+        addHole(ans.x1, ans.y1);
+        lastx = ans.x1;
+        lasty = ans.y1;
+      }
+      /* Return to gear's center, then rotate a quarter turn to the left of where
+         the last hole was, and label the gear with the number of cogs it has */
+      context.setTransform(1, 0, 0, 1, gearRadius, gearRadius);
+      var hole = holePositions[holePositions.length - 1];
+      var angle = Math.atan2(hole[0], hole[1]) - qcr;
+      context.rotate(-angle);
+      context.translate(-gearRadius, -gearRadius);
+      context.fillText(cogs, gearRadius, 18);
+    }
+    context.stroke();
+    this.image = imageFromCanvas(canvas);
+    this.holes = holePositions;
+    this.cogs = cogs;
+    this.step = cr / cogs;
+    this.radius = gearRadius;
+    return this;
+  }
+
+  return this;
+}
+
+function imageFromCanvas(canvas) {
+  var img = new Image();
+  img.src = canvas.toDataURL();
+  return img;
+}
+
+function InputHandler() {
+  var isDown = false;
+  var modes = { DRAW : 0, POSITION : 1 }
+  var mode = modes.DRAW;
+  var downPos = { x : 0, y : 0 };
+
+  this.toggleMode = function() {
+    if (mode == modes.DRAW) {
+      mode = modes.POSITION;
+      gearImage.style.display = 'none';
+      snapShot();
+      drawing.style.opacity = .5;
+      refresh();
+    } else {
+      mode = modes.DRAW;
+      gearImage.style.display = '';
+      drawing.style.opacity = '';
+      var centerX = parseFloat(ringImage.style.left) + ringImage.width / 2;
+      var centerY = parseFloat(ringImage.style.top) + ringImage.height / 2;
+      ctrl.initSet(null, null, null, null, centerX, centerY);
+    }
+  }
+
+  function pointInGear(image, x, y) {
+    var gx = parseFloat(image.style.left);
+    var gy = parseFloat(image.style.top);
+    if (x < gx || x > gx + image.width)  return false;
+    if (y < gy || y > gy + image.height) return false;
+    return true;
+  }
+
+  function moveGearToCursor(x, y) {
+    switch (mode) {
+    case modes.DRAW :
+      if (pointInGear(gearImage, x, y) == false) return;
+      var goal = ctrl.getPosByAngle(x, y);
+      ctrl.drawToGoal(goal);
+      break;
+    case modes.POSITION :
+      if (pointInGear(ringImage, x, y) == false) return;
+      var rl = x - downPos.x;
+      var rt = y - downPos.y;
+      if (rl < 0 || rl + ringImage.width > cnv.width
+      || rt < 0 || rt + ringImage.height > cnv.height) {
+        setDownPos(x, y);
+        return;
+      }
+      ringImage.style.left = rl + 'px';
+      ringImage.style.top = rt + 'px';
+      break;
+    }
+  }
+
+  function touchMove(e) {
+    if (e.touches.length == 1) {
+      moveGearToCursor(e.touches[0].pageX, e.touches[0].pageY);
+    }
+    e.preventDefault();
+  }
+
+  function mouseMove(e) {
+    if (isDown) {
+      moveGearToCursor(e.offsetX, e.offsetY)
+    }
+  }
+
+  function setDownPos(x, y) {
+    if (mode == modes.POSITION && pointInGear(ringImage, x, y)) {
+      downPos.x = x - parseFloat(ringImage.style.left);
+      downPos.y = y - parseFloat(ringImage.style.top);
+    }
+  }
+  
+  function down(e) {
+    isDown = true;
+    setDownPos(e.offsetX, e.offsetY);
+    moveGearToCursor(e.offsetX, e.offsetY);
+  }
+  
+  function up(e) {
+    isDown = false;
+  }
+
+  this.init = function() {
+    document.addEventListener('touchmove', touchMove, false);
+    document.addEventListener('touchstart', touchMove, false);
+    window.addEventListener('mousemove', mouseMove, false);
+    window.addEventListener('mousedown', down, false);
+    window.addEventListener('mouseup', up, false);
+  }
+
+  this.clear = function() {
+    document.removeEventListener('touchmove', touchMove, false);
+    document.removeEventListener('touchstart', touchMove, false);
+    window.removeEventListener('mousemove', mouseMove, false);
+    window.removeEventListener('mousedown', down, false);
+    window.removeEventListener('mouseup', up, false);
+  }
+
+  this.init()
+  return this;
+}
+
+function MenuManager() {
+  var menuGroups = {
+    init     : []
+   ,main     : []
+   ,colors   : []
+   ,gears    : []
+   ,io       : []
+   ,position : []
+   ,slot     : []
+  }
+
+  var activeGroup = menuGroups.init;
+
+  function menuObject(group, shape, callBack, destGroup, bounds) {
+    var obj = {};
+    obj.shape = shape;
+    obj.use = callBack;
+    obj.destGroup = destGroup;
+    obj.index = group.length;
+    if (bounds == null) obj.bounds = [60 * obj.index + 10, 400, 50, 50];
+    else obj.bounds = bounds;
+    group[obj.index] = obj;
+  }
+
+  function makeSlots() {
+    for (var n = 0; n < 9; n++) {
+      var x = (n % 3) * 100 + 20;
+      var y = (parseInt(n / 3)) * 140 + 60;
+      var imgsrc = localStorage['snapshot' + n];
+      if (imgsrc == null) imgsrc = emptySlot.src;
+      var img = new Image();
+      img.src = imgsrc;
+      menuObject(
+        menuGroups.slot
+       ,img
+       ,function() { pickImageCallback(this.index); }
+       ,menuGroups.init
+       ,[x, y, 80, 115]
+      );
+    }
+
+    menuObject(
+      menuGroups.slot
+     ,[25, 0, 25, 50]
+     ,null
+     ,menuGroups.init
+     ,[10, 5, 25, 50]
+    );
+  }
+
+
+  function makeObjects() {
+    menuObject(
+      menuGroups.init
+     ,[0, 0, 25, 50]
+     ,null
+     ,menuGroups.main
+     ,[10, 400, 25, 50]
+    );
+
+    // Each sub group's first item returns to the main group
+    menuObject(
+      menuGroups.colors
+     ,[25, 0, 25, 50]
+     ,null
+     ,menuGroups.main
+     ,[10, 400, 25, 50]
+    );
+    menuGroups.gears[0] = menuGroups.colors[0];
+    menuGroups.io[0] = menuGroups.colors[0];
+
+    // Main group
+    menuObject(
+      menuGroups.main
+     ,[25, 0, 25, 50]
+     ,null
+     ,menuGroups.init
+     ,[10, 400, 25, 50]
+    );
+
+    menuObject(
+      menuGroups.main
+     ,[400, 0, 50, 50]
+     ,null
+     ,menuGroups.colors
+    );
+
+    menuObject(
+      menuGroups.main
+     ,[250, 0, 50, 50]
+     ,null
+     ,menuGroups.gears
+    );
+
+    menuObject(
+      menuGroups.main
+     ,[300, 0, 50, 50]
+     ,null
+     ,menuGroups.io
+    );
+
+    // Colors group
+    menuObject(
+      menuGroups.colors
+     ,[50, 0, 50, 50]
+     ,function() { ctrl.setColor('red'); }
+     ,menuGroups.colors
+    );
+
+    menuObject(
+      menuGroups.colors
+     ,[100, 0, 50, 50]
+     ,function() { ctrl.setColor('green'); }
+     ,menuGroups.colors
+    );
+
+    menuObject(
+      menuGroups.colors
+     ,[150, 0, 50, 50]
+     ,function() { ctrl.setColor('blue'); }
+     ,menuGroups.colors
+    );
+
+    menuObject(
+      menuGroups.colors
+     ,[200, 0, 50, 50]
+     ,function() { ctrl.setColor('purple'); }
+     ,menuGroups.colors
+    );
+
+
+    // Gears group
+    menuObject(
+      menuGroups.gears
+     ,[250, 0, 50, 50]
+     ,ctrl.nextRing
+     ,menuGroups.gears
+    );
+
+    menuObject(
+      menuGroups.gears
+     ,[450, 0, 50, 50]
+     ,ctrl.nextGear
+     ,menuGroups.gears
+    );
+
+    menuObject(
+      menuGroups.gears
+     ,[500, 0, 50, 50]
+     ,ctrl.nextHole
+     ,menuGroups.gears
+    );
+
+   menuObject(
+      menuGroups.gears
+     ,[350, 0, 50, 50]
+     ,ih.toggleMode
+     ,menuGroups.position
+    );
+
+
+   menuObject(
+      menuGroups.position
+     ,[350, 0, 50, 50]
+     ,ih.toggleMode
+     ,menuGroups.gears
+     ,[250, 400, 50, 50]
+    );
+
+    // IO group
+    menuObject(
+      menuGroups.io
+     ,[550, 0, 50, 50]
+     ,saveImage
+     ,menuGroups.slot
+    );
+
+    menuObject(
+      menuGroups.io
+     ,[600, 0, 50, 50]
+     ,loadImage
+     ,menuGroups.slot
+    );
+
+    initDefaultSet();
+  }
+
+  this.showActive = function() {
+    for (var n in activeGroup) {
+      var obj = activeGroup[n];
+      var s = obj.shape;
+      var d = obj.bounds;
+      if (s.src == null) {
+        ctx.drawImage(icons, s[0], s[1], s[2], s[3], d[0], d[1], d[2], d[3]);
+      } else {
+        ctx.drawImage(s, d[0], d[1]);
+      }
+    }
+  }
+
+  function getTouchedObject(x, y) {
+    for (var n in activeGroup) {
+      var obj = activeGroup[n];
+      var b = obj.bounds;
+      if (x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3]) return obj;
+    }
+    return null;
+  }
+
+  function useObject(x, y) {
+    var obj = getTouchedObject(x, y);
+    if (obj == null) {
+      if (activeGroup === menuGroups.main) {
+        activeGroup = menuGroups.init;
+        refresh();
+      }
+      return;
+    }
+    if (obj.use != null) obj.use();
+    if (obj.destGroup != activeGroup) {
+      activeGroup = obj.destGroup;
+      refresh();
+    }
+  }
+
+  function useTouchedObject(e) {
+    if (e.touches.length == 1) {
+      useObject(e.touches[0].pageX, e.touches[0].pageY);
+    }
+    e.preventDefault();
+  }
+
+  function useClickedObject(e) {
+    useObject(e.offsetX, e.offsetY);
+    return false;
+  }
+
+  function setImageMode() {
+    ih.clear();
+    gearImage.style.display = 'none';
+    ringImage.style.display = 'none';
+  }
+
+  function clearImageMode() {
+    ih.init();
+    gearImage.style.display = '';
+    ringImage.style.display = '';
+    refresh();
+  }
+
+  function pickImageSlot() {
+    setImageMode();
+  }
+
+  function pickImageCallback(slot) {
+    if (saveMode) {
+      alert("save " + slot);
+    } else {
+      alert("load " + slot);
+    }
+  }
+
+  function displayImage() {
+  }
+
+  function loadImage() {
+    saveMode = false;
+    pickImageSlot();
+  }
+
+  function saveImage() {
+    saveMode = true;
+    /* Since we will be saving the image, we trigger pickImageSlot asynchronously after
+       "drawing" is updated by the call to snapShot */
+    snapShot(pickImageSlot);
+  }
+
+  var icons = new Image();
+  icons.onload = makeObjects;
+//  icons.src = "images/pgIcons.png";
+  icons.src = "data:image/png;base64,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";
+
+  var saveMode = false;
+  var emptySlot = new Image();
+  emptySlot.onload = makeSlots;
+//  emptySlot.src = "images/empty.png";
+  emptySlot.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABzCAYAAAAPKYU1AAADkklEQVR4Xu3VIUhrYRjG8VcZGoQlyyxqsjqsA0XBIFoMVoNlySAGi2gbCzKDoKAwwShisIkg2rawFQ1rDjGZbeK9vB+ccSbzXrfHK5P7PyA4Pc+7c37n+b7TUywW30ZGRoyjfYF6vW4919fXb1NTUz3tx0nc3Nz8AlDoAYACnkcBBFAUEOM0EEBRQIzTQABFATFOAwEUBcQ4DewGwKenJ5uZmbFardZ0OVdXV+HvynF2dmYLCwvW19fX1pjX11ebnZ21i4sLGxgY+DDb6fxo4Jc00AE3Nzft4OCg7Rv9k4ojrK6u2u7ubttzPwOozP82wEqlYuVy2Y6Pj61UKtnl5aWdn5/b/v6+LS0t2cnJid3d3TWds7GxYblcznZ2dmx9fd388+DgoI2Pj4dG+wM7Ojqyra2thr9/z8TERPjszZ+cnGxqYDTL/99qvn9fJ8eXNfD9Eh4eHrb7+/uwrBcXF8Pv/f39Nj09bYeHhzY2NmaFQsHm5ubs5eWlcY4vN79Zx3KEqIHPz88NNH8AyWSyaXuIZvncx8dHS6VSDUC/htPT0/BQ/Gg1v90t4lsbWK1WbWVlxd4vmThgdI5fmLfJPy8vLzcAE4mEra2t2fb2dsB+v7fF92Fvp2ejPdBbHwdvNf/HA+bz+bCc/UY+aog3z5f70NBQeCCtjmg/3tvbs/n5+QD9IxrY6i3sTUin06FNf2ugvw39x2/Wc9H5mUzGfDtw3N7e3qYtIA4Y3+M+uwf6iojP76SFX7IHdrL5xjPRkvqoVdG5/+ptr1z/jwH05ZvNZu329ja8gLrl6ArAbsHo5DoA7EQtlgEQQFFAjNNAAEUBMU4DARQFxDgNBFAUEOM0EEBRQIzTQABFATFOAwEUBcQ4DQRQFBDjNBBAUUCM00AARQExTgMBFAXEOA0EUBQQ4zQQQFFAjNNAAEUBMU4DARQFxDgNBFAUEOM0EEBRQIzTQABFATFOAwEUBcQ4DQRQFBDjNBBAUUCM00AARQExTgMBFAXEOA0EUBQQ4zQQQFFAjNNAAEUBMU4DARQFxDgNBFAUEOM0EEBRQIzTQABFATFOAwEUBcQ4DQRQFBDjNBBAUUCM00AARQExTgMBFAXEOA0EUBQQ4zQQQFFAjNNAAEUBMU4DARQFxDgNBFAUEOM0EEBRQIzTQABFATFOAwEUBcQ4DQRQFBDjNBBAUUCMhwYWi8W30dFRcdT/GX94eLDfTi7Eyg4tOp4AAAAASUVORK5CYII=";
+
+  window.addEventListener('mousedown', useClickedObject, false);
+  document.addEventListener('touchstart', useTouchedObject, false);
+}
+
+</script>
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+<style type="text/css">
+* {
+   -webkit-user-select: none;  /* prevent copy paste for all elements */
+} 
+
+html { height: 100%; }
+
+body {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+//  background: black;
+}
+
+#container {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
+canvas {
+//  border: 1px solid green;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+img {
+  position: absolute;
+  z-index: 2;
+}
+
+</style>
+<body onload="init()">
+  <div id="container">
+    
+  </div>
+</body>
