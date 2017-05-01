@@ -1,0 +1,429 @@
+<!doctype html>
+<html><head><style type="text/css">
+#messages { width: 600px; text-align: center }
+#messages input {
+  margin: 10px;
+  border: 0;
+  text-decoration: underline;
+  color: blue;
+  background: white;
+}
+#messages input:hover { cursor: pointer }
+#inputCode { width: 600px; height: 200px;}
+#outputMessage { margin: 20px; }
+
+#intro { margin: 1em; }
+h1 { font-size: 18pt; margin-bottom: 0;}
+h2 { font-size: 10pt; margin-top: 0;; text-indent: 1.5em}
+p { width: 800px; text-align: justify; text-indent: 1.5em }
+pre { font-style: italic }
+</style>
+
+<script type="text/javascript">
+var offset = 'M'.charCodeAt(0);
+var queensMessages = [
+   "FQFQ"
+  ,"CUCU"
+  ,"AHAH HPHP"
+  ,"CVCV HPHP AJAJ HOHO HLHL IAIA KBKB DCDC LDLD DEDE EFEF\n" +
+   "NGNG NHNH PIPI UJUJ YKYK VLVL QMQM HMHM AWAW HNHN APAP\n" + 
+   "HNHN HLHL OAOA ABAB LCLC LDLD KEKE IFIF HMHM"
+  ,"HLHL IAIA KBKB DCDC LDLD DEDE EFEF NGNG NHNH PIPI UJUJ\n" + 
+   "YKYK VLVL QMQM HMHM FWFW HNHN FIFI HNHN HLHL IAIA RBRB\n" +
+   "FCFC LDLD NENE HFHF NGNG FHFH ZIZI QJQJ HMHM DXDX\n" +
+   "HNHN FIFI HNHN HLHL HAHA MBMB RCRC XDXD KEKE SFSF\n" +
+   "EGEG KHKH WIWI UJUJ CKCK SLSL LMLM JNJN HMHM"
+  ,"HLHL FAFA ABAB FCFC IDID BEBE ZFZF SGSG SHSH OIOI OJOJ\n" +
+   "HMHM FIFI HNHN HLHL FFFF RGRG NHNH GIGI IJIJ QIQI XZXZ\n" +
+   "HMHM FUFU HNHN HLHL EKEK RLRL LMLM RNRN HOHO RPRP TQTQ\n" +
+   "KRKR YSYS KTKT PUPU EVEV UWUW HMHM EAEA HNHN HLHL JAJA\n" +
+   "UBUB ZCZC SDSD BEBE MFMF HMHM"
+  ,"Visit the above link for contest instructions and source PDF file.\n\nPlease try your hand at decoding the seventh message by hand. Taking a shortcut and decoding it here wouldn't be cricket, now, would it?"
+];
+
+var phrases = {
+  'ABAB' : 'Abandon operation and proceed immediately to safe',
+  'ACAC' : 'Abandoned position due to enemy pressure and',
+  'ADAD' : 'Able to carry out operation as planned',
+  'AEAE' : 'Advise us quickly as possible and hope to',
+  'AFAF' : 'Again soon as possible and hope to',
+  'AGAG' : 'Air field at attacked with good results',
+  'AHAH' : 'All arrangements complete and am ready to attach',
+  'AIAI' : 'Arrives at in hours',
+  'AJAJ' : 'At the end of your mission',
+  'AKAK' : 'BBC message will be_sent to you',
+  'ALAL' : 'Be careful not to give away your_position',
+  'AMAM' : 'Begin operation at once and inform',
+  'ANAN' : 'Between the following point s',
+  'AOAO' : 'Blue light will be shown at',
+  'APAP' : 'Breaking news please await further instructions',
+  'AQAQ' : 'But were unable to reach target due_to',
+  'ARAR' : 'Came to spot as arranged but found',
+  'ASAS' : 'Can move at short notice to area',
+  'ATAT' : 'Cannot undertake operation due to lack of',
+  'AUAU' : 'Carry on as best we can to',
+  'AVAV' : 'Casualties light but much equipment lost in',
+  'AWAW' : 'Codes not understood please repeat',
+  'AXAX' : 'Contact made with friendly elements at given point',
+  'AYAY' : 'Containers safely received also equipment',
+  'AZAZ' : 'Could not hear you at all because of',
+  'BABA' : 'DF station attacked and_put out_of action',
+  'BBBB' : 'Damage d enemy installation s at point',
+  'BCBC' : 'Decide d that it would not be',
+  'BDBD' : 'Defended by strong force of',
+  'BEBE' : 'Did not attempt attack on target due to',
+  'BFBF' : 'Difficulty of movement in area due to',
+  'BGBG' : 'Does not offer much chance of success because',
+  'BHBH' : 'Drop *ping arranged for at',
+  'BIBI' : 'E-Boats attacked at their moorings at',
+  'BJBJ' : 'Early as possible so that you can',
+  'BKBK' : 'East of the point with which',
+  'BLBL' : 'Emergency has arisen in_district round',
+  'BMBM' : 'End of message',
+  'BNBN' : 'Endeavor to find safe house in',
+  'BOBO' : 'Enemy agent believe d to have',
+  'BPBP' : 'Events are going ahead as planned',
+  'BQBQ' : 'Few casualties but equipment damaged',
+  'BRBR' : 'Find out if the enemy have abandoned',
+  'BSBS' : 'Finish task and will withdraw',
+  'BTBT' : 'Food and_ammunition needed urgently send',
+  'BUBU' : 'For next few days',
+  'BVBV' : 'Forced to abandon operations due to',
+  'BWBW' : 'Found spot suitable for dropping operation on',
+  'BXBX' : 'From now on we shall attempt to',
+  'BYBY' : 'Gave us no opportunity to prepare for',
+  'BZBZ' : 'German s prisoners captured and taken',
+  'CACA' : 'Gestapo are searching for agents in_area',
+  'CBCB' : 'Give password as follows',
+  'CCCC' : 'GMT until',
+  'CDCD' : 'Go ahead with operation at earlist opportunity',
+  'CECE' : 'Gone to_ground near target and will',
+  'CFCF' : 'Guard *ed by strong force of',
+  'CGCG' : 'Had to_abandon position due to enemy pressure',
+  'CHCH' : 'Harrass *ed by enemy and am withdrawing',
+  'CICI' : 'Have arrived sagely with all containers',
+  'CJCJ' : 'Have carrier out operation successfully am_withdrawing',
+  'CKCK' : 'Have spotted target and will send full report',
+  'CLCL' : 'Help will be needed in area soon',
+  'CMCM' : 'Here as long as possible and will not',
+  'CNCN' : 'Hurry up as fast as you can to',
+  'COCO' : 'I am not ready to undertake operations yet',
+  'CPCP' : 'I cannot attack target fur to lack of ammunition',
+  'CQCQ' : 'I_do then I will attempt to contact',
+  'CRCR' : 'I_feel sure that we shall be',
+  'CSCS' : 'I_will not attempt to contact you unless',
+  'CTCT' : 'Immediately you receive this message you must',
+  'CUCU' : 'Important event will take place',
+  'CVCV' : 'It will happen in hours',
+  'CWCW' : 'Join up with main force s at',
+  'CXCX' : 'Lack of supplies very serious send reserves',
+  'CYCY' : 'Land *ed safely with all containers and equipment',
+  'CZCZ' : 'Landmark features are as follows',
+  'DADA' : 'Large stocks of petrol and of oil',
+  'DBDB' : 'Leave as quickly as you can for',
+  'DCDC' : 'Link up with force s as',
+  'DDDD' : 'Location picked will settle in and attempt to',
+  'DEDE' : 'Lost most equipment need replacements of all',
+  'DFDF' : 'Machine gun s and mortar s are',
+  'DGDG' : 'Main forces in area are grouped at',
+  'DHDH' : 'Maintain contact with us and instruct your',
+  'DIDI' : 'Make arrangement to receive stores on',
+  'DJDJ' : 'Marked with white square blue circle',
+  'DKDK' : 'Metre s away from target area',
+  'DLDL' : 'Mile s away from the target area',
+  'DMDM' : 'Mine s laid in area of',
+  'DNDN' : 'Near to target as possible and will',
+  'DODO' : 'Nearly succeeded in_reaching target but enemy',
+  'DPDP' : 'Need supply and ammunication urgently send soonest',
+  'DQDQ' : 'Next object *ive will be target at',
+  'DRDR' : 'Night attach will be attempted on date',
+  'DSDS' : 'No further news of enemy activity yet',
+  'DTDT' : 'North *erly direction and will soon reach',
+  'DUDU' : 'Number s increasing considerably and position now',
+  'DVDV' : 'Objective s must be attacked at once',
+  'DWDW' : 'Observe +ation party +ies report that enemy',
+  'DXDX' : 'Of the container s were lost and',
+  'DYDY' : 'Off the air unless you have urgent traffic',
+  'DZDZ' : 'Okay to_go ahead with plan as arranged',
+  'EAEA' : 'On no account must you attempt to',
+  'EBEB' : 'Other *wise you will have to try',
+  'ECEC' : 'Out of action for at least another',
+  'EDED' : 'Parachute *ist s will be dropped at',
+  'EEEE' : 'Part *ly completed will try again soonest',
+  'EFEF' : 'Pass *ed here heading in direction of',
+  'EGEG' : 'Petrol dump attacked and on fire',
+  'EHEH' : 'Plan impossible due to enemy troop movements',
+  'EIEI' : 'Point noted and agreed for operation next',
+  'EJEJ' : 'Prevent enemy from reaching town at all costs',
+  'EKEK' : 'Prisoner s taken in area of',
+  'ELEL' : 'Quick *ly as possible and keep us informed',
+  'EMEM' : 'RAF agree grounds for operation s on',
+  'ENEN' : 'Railway line s cut between and',
+  'EOEO' : 'Ration s short need supplies of',
+  'EPEP' : 'Ready to begin operation immediately on receiving',
+  'EQEQ' : 'Reinforcement s needed urgently in area of',
+  'ERER' : 'Remain *ing here until I hear further',
+  'ESES' : 'Retreating towards',
+  'ETET' : 'Road s between and are almost impassable',
+  'EUEU' : 'Sabotaged telephone communications between and',
+  'EVEV' : 'Safe house found for you in area',
+  'EWEW' : 'Sent party to attack target at spot',
+  'EXEX' : 'Should we try again or wait till',
+  'EYEY' : 'Situated by the river at',
+  'EZEZ' : 'South *erly route',
+  'FAFA' : 'Spot not suitable for dropping supplies',
+  'FBFB' : 'Stay where you are until further instructions',
+  'FCFC' : 'Take all possible precautions to avoid being',
+  'FDFD' : 'Tank s passing through towns at',
+  'FEFE' : 'Target destroyed have retreated to area agreed',
+  'FFFF' : 'Tell all concerned to_prepare for operation s',
+  'FGFG' : 'Temporary address in safe house and remain',
+  'FHFH' : 'There at earliest possible moment and contact',
+  'FIFI' : 'The ',
+  'FJFJ' : 'Tomorrow if possible',
+  'FKFK' : 'Troops moving from this area',
+  'FLFL' : 'U-boat parts being manufactured at factory',
+  'FMFM' : 'Understand your instruction s and will try to',
+  'FNFN' : 'Unless we receive further instructions will not',
+  'FOFO' : 'Unlikely at present to be able to attack',
+  'FPFP' : 'Unsuccessful but will try again soonest',
+  'FQFQ' : 'Urgent message for you and your group s',
+  'FRFR' : 'Urgently as cannot proceed unless they arrive',
+  'FSFS' : 'Us whether you have managed to contact',
+  'FTFT' : 'Vehicle s attacked tanks destroyed',
+  'FUFU' : 'Visiting the safe house in hours',
+  'FVFV' : 'Waiting further instruction s to carry out',
+  'FWFW' : 'Was unable to_hear your message clearly',
+  'FXFX' : 'We are ready to begin attack on',
+  'FYFY' : 'We were forced to abandon attack due to',
+  'FZFZ' : 'Weather holding up operation s at',
+  'GAGA' : 'West *erly direction',
+  'GBGB' : 'Where shall we proceed next as we',
+  'GCGC' : 'Which missions have you already completed',
+  'GDGD' : 'Yes but take care not to endanger',
+  'GEGE' : 'Yet manage d to secure position s',
+  'GFGF' : 'You can_rely on_help of groups at',
+  'GGGG' : 'You have not answered our question s about',
+  'GHGH' : 'You must then proceed towards area agreed',
+  'GIGI' : 'Your message number received okay',
+  'GKGK' : 'Your message number please repeat',
+  'GLGL' : '0',
+  'GMGM' : '1',
+  'GNGN' : '2',
+  'GOGO' : '3',
+  'GPGP' : '4',
+  'GQGQ' : '5',
+  'GRGR' : '6',
+  'GSGS' : '7',
+  'GTGT' : '8',
+  'GUGU' : '9',
+  'GVGV' : '10',
+  'GWGW' : '11',
+  'GXGX' : '12',
+  'GYGY' : '13',
+  'GZGZ' : '14',
+  'HAHA' : '15',
+  'HBHB' : '16',
+  'HCHC' : '17',
+  'HDHD' : '18',
+  'HEHE' : '19',
+  'HFHF' : '20',
+  'HGHG' : '21',
+  'HHHH' : '22',
+  'HIHI' : '23',
+  'HKHK' : '24'
+};
+
+var letterHash = { };
+var letters = {
+  //     A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+  'A' : 'i e r t w h d m b f q j z o c u l a v n s x p y k g',
+  'B' : 'e q y b k v c g a w l z o x m s n i p h r j u f t f',
+  'C' : 'o l z e g r b c y p u n w f a x t d q j m s k h v i',
+  'D' : 'v w o q z i a y m l n t r p h k u c d g d f s e j b',
+  'E' : 'b a l c o y i t f v r m s h q z j e g p x w n d u k',
+  'F' : 'm g v r h q l p e a z k y c x o f s n u t d w b i j',
+  'G' : 'g f q x c m v b r y k h i l s j p u e d n t o w z a',
+  'H' : 't y w j f a q u h i o g k e d l z p s b v n r e m x',
+  'I' : 'a p s o x d e k l h v w g j t y i b z r q u m n f c',
+  'J' : 'j x t h u k z w n m s a q i y g e o r c p b v l d f',
+  'K' : 'z t u l b j x i s o g f h r n d m q y k w p c v a e',
+  'L' : 'o c e k s u f x i d b p m g v h a l t q y r z j n w',
+  'M' : 'f u m n t g y * d j x e l v b r k z o w c q i p h s',
+  'N' : 'n o x m y s w v j r d c p z k q b t f a g h e i l u',
+  'O' : 'l n d i e o s c z k h r b a w f x j m t u y g q p v',
+  'P' : 'r i p s q x u f v c t l n d z w g h b e j k a m o y',
+  'Q' : 'y b g d p f h z x u a s j w e n b k c l i m t o q r',
+  'R' : 'p z a f v c t s g n e o d k u m y w j i b l h x r q',
+  'S' : 'w v i p l n o r k t j q e u g b s f h x a c d z y m',
+  'T' : 'h k j a m t r e w s p d x y i v c n l o f g q u b z',
+  'U' : 'x m k z j l p h u q c y v s r a d g w f o i b t e n',
+  'V' : 'd s f w r b g n p e i x u m l t q y a v h z j k c o',
+  'W' : 's d h v a z n j t b y i i q o p w r u m k e f g x l',
+  'X' : 'u j n g i p k l q z m v t b f c o x d s e a y r w h',
+  'Y' : 'q h b y n e m d c g w u f t j i r v k z l o x a s p',
+  'Z' : 'k r c u d w j q o x f b a n p e h m i y z v l s g t'
+};
+
+function init() {
+  var alphabetArray = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  for (var i in alphabetArray) {
+    var y = alphabetArray[i];
+    var line = letters[y].split(" ");
+    for (var j in line) {
+      var letter = line[j];
+      var x = alphabetArray[j];
+      letterHash[x + y + x + y] = letter;
+    }
+  }
+}
+
+function decode() {
+  var input = document.getElementById('inputCode').value;
+  var output = '';
+  var outputDiv = document.getElementById('outputMessage');
+  var tokens = input.split(/\s+/);
+  var decoder = new Decoder();
+  for (var tokenNum in tokens) {
+    var t = tokens[tokenNum].toUpperCase();
+    if (!decoder.checkToken(t)) {
+      outputDiv.innerText = "Error decoding token " + t + ": " + decoder.getError();
+      return;
+    }
+  }
+
+  outputDiv.innerHTML = "Decoded message: " + decoder.getMessage();
+}
+
+function Decoder() {
+  var parts = [];
+  var tableMode = false;
+  var errorMsg = "";
+
+  this.checkToken = function(token) {
+    if(!token.match(/^[A-Z]{4}$/)) {
+      errorMsg = 'Token not 4 letters';
+      return false;
+    }
+    if (token.substr(0, 2) != token.substr(2)) {
+      errorMsg = "First and second halves of token don't match";
+      return false;
+    }
+    if(!tableMode && token.charAt(0) > 'H') {
+      errorMsg = 'No phrase lookup starts with ' + token.charAt(0);
+      return false;
+    }
+    if(tableMode) return nextChar(token);
+    return nextPhrase(token);
+  }
+
+  function nextChar(token) {
+    if (token == 'HMHM') {
+      tableMode = false;
+      parts.push('</b>');
+      return true;
+    }
+    var t = letterHash[token];
+    if (t == null) return false; // Happens if this is called before init() finishes
+    parts.push(t);
+    return true;
+  }
+
+  function nextPhrase(token) {
+    if (token.charAt(0) == 'H' && token.charAt(1) > 'K') {
+      var one = token.charAt(1);
+      if (one == 'M') {
+        errorMsg = 'Found HMHM when no table had been started';
+        return false;
+      }
+      if (one == 'L') {
+        tableMode = true;
+        parts.push('<b>');
+        return true;
+      }
+      if (one > 'S') {
+        errorMsg = 'No phrase starts with H' + one;
+        return false;
+      }
+      var idx = parts.length - 1;
+      // HNHN: stop at first hyphen
+      // HOHO: stop at second hyphen
+      // HPHP: stop at third hyphen
+      // HQHQ: stop at fourth hyphen
+      // HRHR: stop at fifth hyphen
+      // HSHS: stop at sixth hyphen
+      var numWords = one.charCodeAt(0) - offset; // Number of letters away from 'M'
+      var pos = -1;
+      for (var n = 0; n < numWords; n++) pos = parts[idx].indexOf(' ', pos + 1); 
+      parts[idx] = parts[idx].substr(0, pos);
+      return true;
+    }
+    var phrase = phrases[token];
+    if (phrase == null) {
+      errorMsg = 'No phrase found for token';
+      return false;
+    }
+    parts.push(phrase);
+    return true;
+  }  
+
+  this.getMessage = function() {
+    var message = parts.join(" ");
+    // Phrase parts starting with * or + are suffixes for previous word
+    // This trims the leading space for * ("drop *ping", for example)
+    // ...and trims space and one character of previous word for + ("observe +ation")
+    message = message.replace(/ \*|\w \+/g, "");
+
+    // Any lower case letter letter by itself is assumed to be part of prior word.
+    // This deletes the leading space
+    message = message.replace(/(\w\w) ([a-z])\b/g, "$1$2");
+
+    // Multiple words that count as one phrase part are separated by _.
+    // This turns that back into a space
+    message = message.replace(/_/g, " ");
+    return message;
+  }
+
+  this.getError = function() {
+    return errorMsg;
+  }
+}
+
+
+function queensMessage(num) {
+  document.getElementById('inputCode').value = queensMessages[num];
+}
+
+</script></head><body onload=init()>
+<div id="intro">
+<h1>An answer to the Queen's code breaking challenge</h1>
+<h2>by Curtis Autery, who is neither a kid nor living in the UK.&nbsp;&nbsp;Unfortunately.</h2>
+</div>
+<p>I came across <a href="http://web.archive.org/web/20110718093534/http://www.royal.gov.uk/LatestNewsandDiary/TheQueensCodeBookChallenge/TheQueensCodeBookChallenge.aspx">this link</a> yesterday wherein Her Majesty The Queen issued a code breaking challenge aimed at kids. It includes a PDF file with instructions and seven messages to decode in increasing difficulty. There is a vague reference to an unknown prize for a random UK teenager whose answer to the last question is chosen.
+</p><p>
+The instructions were made to look like an old, worn, codebook circa 1940s, and the effect was pretty neat. I browsed through it, decoded the last message by hand (which I'm not going to reveal here, as that would violate the spirit of the contest), and found the experience enjoyable, triggering memories of myself playing spy, and making up symbol tables for secret messages. Fun stuff.
+</p><p>
+The cipher used is a table using 4-character keys in multiple lookup modes. The default mode is to replace a key with a phrase. An optional phrase modifier key immediately following says how many words in the phrase are used. Two additional keys indicate that the lookup mode is changing to characters instead of phrases, where CDCD would change from meaning "Go ahead with operation at earlist opportunity" to the letter "o", or back to phrases.
+</p><p>
+I decided to have a go with writing a decoder with plain old JavaScript, which was more or less a straightforward process. The main difficulty was transposing the codebook, as the PDF file was created with Corel Draw as image data, not text that could be copied. Despite being a fast typist, this still took me a few hours, some time of which was spent musing on why the standard phrases tended to be apologetic and offering reasons for failed missions. Here are a few examples:
+</p><pre>ATAT: Cannot undertake operation due to lack of
+AUAU: Carry on as best we can to
+ECEC: Out of action for at least another</pre><p>
+I assume that spies having success in the field don't need to send as many messages as those being harrassed by the Gestapo, so that may explain the slant. If the language is any indicator, being in the resistance would be as unpleasant as taking enemy fire on the front. On a lighter note, here is my completed decoder, with the first six messages pre-loaded. The seventh message isn't loaded, which will probably not stop you from clicking the link; will it, you dirty cheater?
+</p>
+<div id="messages">
+  Queen's messages: <br/>
+  <input type=button onclick=queensMessage(0) value=One />
+  <input type=button onclick=queensMessage(1) value=Two />
+  <input type=button onclick=queensMessage(2) value=Three />
+  <input type=button onclick=queensMessage(3) value=Four />
+  <input type=button onclick=queensMessage(4) value=Five />
+  <input type=button onclick=queensMessage(5) value=Six />
+  <input type=button onclick=queensMessage(6) value=Seven />
+</div>
+<div id="container">
+  <textarea id="inputCode" placeholder="Type coded message here"></textarea>
+  <input type=button onclick=decode() value="Decode" />
+</div>
+<div id="outputMessage">Decoded message: </div>
+</body>
